@@ -90,6 +90,12 @@
     <ClInclude Include="GS_Fifo.h">
       <Filter>Header Files\GameSpy</Filter>
     </ClInclude>
+    <ClInclude Include="gameOffsets.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GLHook.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -143,9 +149,18 @@
     <ClCompile Include="GS_Fifo.cpp">
       <Filter>Source Files\GameSpy</Filter>
     </ClCompile>
+    <ClCompile Include="dsound.cpp">
+      <Filter>Source Files\GameSpy</Filter>
+    </ClCompile>
+    <ClCompile Include="GLHook.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="VCProxy.def">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="dsound.def">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>

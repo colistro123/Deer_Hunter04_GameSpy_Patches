@@ -4,6 +4,9 @@
 #include "VCPatcher.h"
 #include "HookFunction.h"
 #include "Hooking.h"
+#include <windows.h>
+#include <mmsystem.h>
+#include <dsound.h>
 
 // global variables
 #pragma data_seg (".d3d8_shared")
@@ -13,6 +16,11 @@ HINSTANCE           gl_hOriginalDll;
 HINSTANCE           gl_hThisInstance;
 VCPatcher			gl_patcher;
 #pragma data_seg ()
+
+HRESULT __stdcall DirectSoundCreate(LPCGUID lpcGuid, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter)
+{
+	return 1;
+}
 
 BOOL APIENTRY DllMain(HANDLE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved)
 {
@@ -59,6 +67,85 @@ IDirect3D8* WINAPI Direct3DCreate8(UINT SDKVersion)
 	return (gl_pmyIDirect3D8);
 }
 
+#include "GLHook.h"
+/* Hooked API Functions*/
+
+DWORD CreateWindowExaddr = 0;				//Global DWORD(4-bytes) to store the address of the CreateWindowEx API
+DWORD SetWindowPosExaddr = 0;
+DWORD ChangeDisplaySettingsaddr = 0;		//Global DWORD to store the addres of the ChangeDisplaySettings API
+DWORD ShowWindowExAddr = 0;
+
+BYTE backupShowWindow[6];
+BYTE backupSWP[6];						//Array of bytes to save the original code when we hook the CreateWindowEx API
+BYTE backupCW[6];						//Array of bytes to save the original code when we hook the CreateWindowEx API
+BYTE backupCDS[6];						//Array of Bytes to save the original code when we hook ChangeDisplaySettings
+
+BOOL WINAPI hook_ShowWindowEx(HWND hWnd, int nCmdShow) {
+	//hWndInsertAfter = HWND_BOTTOM;
+	nCmdShow = 5;
+	WriteProcessMemory(GetCurrentProcess(), (void*)ShowWindowExAddr, backupShowWindow, 6, 0);
+
+	BOOL wndRet = ShowWindow(hWnd, nCmdShow);
+
+	ShowWindowExAddr = HookGeneralFunction("user32.dll", "SetWindowPosExA", hook_ShowWindowEx, backupShowWindow);
+	return wndRet;
+}
+
+LONG WINAPI hook_ChangeDisplaySettings(LPDEVMODE lpDevMode, DWORD dwflags)
+{
+	return 0;														//DISP_CHANGE_SUCCESSFUL = 0, We return this value to let the hooked program think that everything went allright
+}
+BOOL WINAPI hook_SetWindowPosEx(HWND hWnd, HWND hWndInsertAfter, int X, int Y, int cx, int cy, UINT uFlags)
+{
+	hWndInsertAfter = HWND_BOTTOM;
+	WriteProcessMemory(GetCurrentProcess(), (void*)SetWindowPosExaddr, backupSWP, 6, 0);
+
+	BOOL wndRet = SetWindowPos(hWnd, hWndInsertAfter, X, Y, cx, cy, uFlags | SWP_HIDEWINDOW);
+
+	SetWindowPosExaddr = HookGeneralFunction("user32.dll", "SetWindowPosExA", hook_SetWindowPosEx, backupSWP);
+	return wndRet;
+}
+
+HWND WINAPI hook_CreateWindowEx(DWORD dwExStyle, LPCTSTR lpClassName, LPCTSTR lpWindowName, DWORD dwStyle, int x, int y, int nWidth,
+	int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam)
+{
+	dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;			// Window Extended Style
+	dwStyle = WS_MINIMIZEBOX;							// Windows Style
+	lpWindowName = "Hooked!";									// We change the window name into "Hooked!" just for fun
+	nWidth = 500;											// We change the width, because we don't want a full screen window
+	nHeight = 700;											// We change the heigth
+	ShowCursor(TRUE);													// Show Mouse Pointer
+	x = 0;
+	y = 0;
+																		/* Write the original code back(Unhook the API) */
+	WriteProcessMemory(GetCurrentProcess(), (void*)CreateWindowExaddr, backupCW, 6, 0);
+
+	/* Call the API but with the nessecary changes */
+	HWND ret = CreateWindowEx(dwExStyle,						// Extended Style For The Window
+		lpClassName,						// Class Name
+		lpWindowName,							// Window Title
+		dwStyle |							// Defined Window Style
+		WS_CLIPSIBLINGS |					// Required Window Style
+		WS_CLIPCHILDREN,					// Defined Window Style
+		x,
+		y,									// Window Position
+		nWidth,								// Window Width
+		nHeight,								// Window Height
+		hWndParent,							// Parent Window
+		hMenu,								// Menu
+		hInstance,							// Instance
+		lpParam);							// Pass Anything To WM_CREATE
+
+	ShowWindow(ret, SW_HIDE);
+											/* Reinstall the Hook */
+	CreateWindowExaddr = HookGeneralFunction("user32.dll", "CreateWindowExA", hook_CreateWindowEx, backupCW);
+	return ret;													// Return the Handle to the window we created
+}
+
+static bool returntrue() {
+	return false;
+}
+
 bool bDelay;
 DWORD WINAPI Init(LPVOID)
 {
@@ -82,6 +169,51 @@ DWORD WINAPI Init(LPVOID)
 	{
 		//Ready to go
 		//CreateThread(0, 0, (LPTHREAD_START_ROUTINE)&Init, NULL, 0, NULL);
+#ifdef COMPILING_2005
+
+		HMODULE hAspen = GetModuleHandle("Aspen.dll");
+		if (hAspen)
+		{
+			/*
+			auto pattern = hook::module_pattern(hAspen, "81 EC ? ? ? ? 6A 00 6A 00 E8").count(1);
+			if (pattern.size() == 1) {
+				//100D43B0
+				char *location = pattern.get(0).get<char>(0);
+				hook::return_function_vp(location, 0);
+			}
+			*/
+			//hook::return_function_vp(0x41B9DE, 0);
+			//hook::return_function_vp(0x41B9F0, 0);
+			//hook::vp::jump(0x100D49A7, customCreateDevice); //CreateDevice thing
+			
+			/*
+			auto matches = hook::module_pattern(hAspen, "83 E1 04 0B CE 51 8B 8C 24").count(2);
+			for (int i = 0; i < matches.size(); i++)
+			{
+				//Patch out the push
+				char *location = matches.get(i).get<char>(2);
+				hook::putVP<uint8_t>(location, 0);
+			}
+			*/
+			//hook::nopVP(0x100D4977, 0x35);
+			hook::putVP<uint8_t>(0x1009737B, 0xEB);
+
+			SetWindowPosExaddr = HookGeneralFunction("user32.dll", "SetWindowPos", hook_SetWindowPosEx, backupSWP);
+			CreateWindowExaddr = HookGeneralFunction("user32.dll", "CreateWindowExA", hook_CreateWindowEx, backupCW);
+			ChangeDisplaySettingsaddr = HookGeneralFunction("user32.dll", "ChangeDisplaySettingsA", hook_ChangeDisplaySettings, backupCDS);
+			ShowWindowExAddr = HookGeneralFunction("user32.dll", "ShowWindow", hook_ShowWindowEx, backupShowWindow);
+			/*
+			pattern = hook::module_pattern(hAspen, "E8 ? ? ? ? 85 C0 75 30").count(1);
+			if (pattern.size() == 1) {
+				//100D43B0
+				char *location = pattern.get(0).get<char>(0);
+				hook::vp::jump(location, returntrue);
+			}
+			*/
+		}
+
+		
+#endif
 		HookFunction::RunAll();
 		gl_patcher.Init();
 	}

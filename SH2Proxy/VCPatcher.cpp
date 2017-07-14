@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include "gsAssert.h"
 #include "MinHook.h" //yeah no...
+#include "gameOffsets.h"
 
 #define CONSOLE_ENABLED_THAT_CRASHES
 
@@ -354,11 +355,11 @@ static SBError ServerListConnect(void *padding1, SBServerList *slist)
 static HookFunction hookFunction([]()
 {
 #if _DEBUG
-	hook::vp::jump(0x4E7F4A, logFuncCustom); //CLog::Debug
-	hook::vp::jump(0x4E7F5C, logFuncCustom); //CLog::Normal
-	hook::vp::jump(0x4E7FAA, logFuncCustom); //CLog::Warning
-	hook::vp::jump(0x4E7F56, logFuncCustom); //CLog::Error
-	hook::return_function_vp(0x4086F0, 0); //no intro screens
+	hook::vp::jump(CLOG_DEBUG_FUNC_ADDR, logFuncCustom); //CLog::Debug
+	hook::vp::jump(CLOG_NORMAL_FUNC_ADDR, logFuncCustom); //CLog::Normal
+	hook::vp::jump(CLOG_WARNING_FUNC_ADDR, logFuncCustom); //CLog::Warning
+	hook::vp::jump(CLOG_ERROR_FUNC_ADDR, logFuncCustom); //CLog::Error
+	hook::return_function_vp(NO_INTRO_SCREENS_FUNC_ADDR, 0); //no intro screens
 
 	AllocConsole();
 	AttachConsole(GetCurrentProcessId());
@@ -1037,8 +1038,8 @@ void customCallbackPatch(int reason) {
 }
 
 void(*g_origSBCallback)(intptr_t* serverBrowser, int reason, SBServer server, void *instance);
-DWORD jmpAddrExit = 0x441208;
-DWORD jmpAddrContinue = 0x4410AF;
+DWORD jmpAddrExit = SB_CALLBACK_JMPADDR_EXIT;
+DWORD jmpAddrContinue = SB_CALLBACK_JMPADDR_CONT;
 int reason;
 void __declspec(naked) SBCallbackPatch() {
 	__asm {
@@ -1061,7 +1062,6 @@ void __declspec(naked) SBCallbackPatch() {
 			jmp jmpAddrContinue
 	}
 }
-
 #define LIMIT_FRAMERATE
 //#define EXPERIMENTAL_HOOKS
 bool VCPatcher::Init()
@@ -1088,10 +1088,10 @@ bool VCPatcher::Init()
 	MH_EnableHook(MH_ALL_HOOKS);
 #endif
 
-	hook::nopVP(0x4410A9, 6); //nop if statement at sbcallback to show the servers
-	hook::vp::jump(0x4410A9, SBCallbackPatch); //ServerBrowser callback logic re-impl'd...
+	hook::nopVP(NOP_VP_CALLBACK_LOGIC, 6); //nop if statement at sbcallback to show the servers
+	hook::vp::jump(NOP_VP_CALLBACK_LOGIC, SBCallbackPatch); //ServerBrowser callback logic re-impl'd...
 
-	loc = (char*)0x4437FA;
+	loc = (char*)FUNC_BUILD_QUERY_FUNC;
 	hook::set_call(&funcBuildQueryOrig, loc);
 	hook::vp::call(loc, funcBuildQueryCustom);
 
@@ -1101,6 +1101,10 @@ bool VCPatcher::Init()
 	hook::iat("WSOCK32.dll", CfxRecvFrom, 17);
 	hook::iat("WSOCK32.dll", CfxBind, 2);
 
+#ifdef COMPILING_2005
+	hook::nopVP(0x50001E, 29); //Patch it here so it doesn't exit early on when starting a dedicated server and the game at the same time
+	
+#endif
 #ifdef _DEBUG
 	//loc = (char*)0x441070;
 	//SBCallback(int serverBrowser, int reason, int server, int instance)
@@ -1108,22 +1112,22 @@ bool VCPatcher::Init()
 
 	//hook::vp::jump(0x446FD0, ProcessMainListData);
 	//hook::vp::jump(0x446ED0, IncomingListParseServer);
-	
-	hook::vp::jump(0x4448E8, orig_ParseSingleQR2Reply);
-	hook::vp::jump(0x4449D0, SBQueryEngineThinkWrapper);
-	hook::vp::jump(0x442070, sub_442070);
+#ifndef COMPILING_2005 //04 specific for now
+	hook::vp::jump(PARSE_SINGLE_QR2_REPLY, orig_ParseSingleQR2Reply);
+	hook::vp::jump(SBQueryEngineThinkWrapperAddr, SBQueryEngineThinkWrapper);
+	hook::vp::jump(sub_442070_Addr, sub_442070);
 
-	hook::set_call(&SBServerAddKeyValue, 0x44471E);
-	hook::set_call(&SBServerParseQR2FullKeysSingle, 0x444751);
-	hook::set_call(&QEStartQuery, 0x4449AF);
-	hook::set_call(&ProcessIncomingReplies, 0x4449DC);
-	hook::set_call(&TimeoutOldQueries, 0x4449E1);
-	hook::set_call(&QueueNextQueries, 0x4449EF);
-	hook::set_call(&SBRefStr, 0x444B3A);
-	hook::set_call(&GOADecrypt, 0x44704D);
-	//hook::set_call(&IncomingListParseServer, 0x4472AB);
-	hook::set_call(&InitCryptKey, 0x44702D);
-
+	hook::set_call(&SBServerAddKeyValue, SBServerAddKeyValueAddr);
+	hook::set_call(&SBServerParseQR2FullKeysSingle, SBServerParseQR2FullKeysSingleAddr);
+	hook::set_call(&QEStartQuery, QEStartQueryAddr);
+	hook::set_call(&ProcessIncomingReplies, ProcessIncomingRepliesAddr);
+	hook::set_call(&TimeoutOldQueries, TimeoutOldQueriesAddr);
+	hook::set_call(&QueueNextQueries, QueueNextQueriesAddr);
+	hook::set_call(&SBRefStr, SBRefStrAddr);
+	hook::set_call(&GOADecrypt, GOADecryptAddr);
+	//hook::set_call(&IncomingListParseServer, IncomingListParseServerAddr);
+	hook::set_call(&InitCryptKey, InitCryptKeyAddr);
+#endif
 		//static void QEStartQuery(SBQueryEngine *engine, SBServer server)
 #endif
 	/*
