@@ -17,11 +17,6 @@ HINSTANCE           gl_hThisInstance;
 VCPatcher			gl_patcher;
 #pragma data_seg ()
 
-HRESULT __stdcall DirectSoundCreate(LPCGUID lpcGuid, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter)
-{
-	return 1;
-}
-
 BOOL APIENTRY DllMain(HANDLE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved)
 {
 	// to avoid compiler lvl4 warnings 
@@ -44,7 +39,7 @@ IDirect3D8* WINAPI Direct3DCreate8(UINT SDKVersion)
 {
 	if (!gl_hOriginalDll) LoadOriginalDll(); // looking for the "right d3d8.dll"
 
-	// Hooking IDirect3D Object from Original Library
+											 // Hooking IDirect3D Object from Original Library
 	typedef IDirect3D8 *(WINAPI* D3D8_Type)(UINT SDKVersion);
 	D3D8_Type D3DCreate8_fn = (D3D8_Type)GetProcAddress(gl_hOriginalDll, "Direct3DCreate8");
 
@@ -174,30 +169,24 @@ DWORD WINAPI Init(LPVOID)
 		HMODULE hAspen = GetModuleHandle("Aspen.dll");
 		if (hAspen)
 		{
-			/*
-			auto pattern = hook::module_pattern(hAspen, "81 EC ? ? ? ? 6A 00 6A 00 E8").count(1);
-			if (pattern.size() == 1) {
-				//100D43B0
-				char *location = pattern.get(0).get<char>(0);
-				hook::return_function_vp(location, 0);
-			}
-			*/
-			//hook::return_function_vp(0x41B9DE, 0);
-			//hook::return_function_vp(0x41B9F0, 0);
-			//hook::vp::jump(0x100D49A7, customCreateDevice); //CreateDevice thing
-			
-			/*
-			auto matches = hook::module_pattern(hAspen, "83 E1 04 0B CE 51 8B 8C 24").count(2);
+#if 0
+			auto matches = hook::module_pattern(hAspen, "F7 D9 1B C9 83 E1 04 0B CE").count(2);
 			for (int i = 0; i < matches.size(); i++)
 			{
-				//Patch out the push
-				char *location = matches.get(i).get<char>(2);
-				hook::putVP<uint8_t>(location, 0);
+				//Patch out the weird flag stuff this game does
+				char *location = matches.get(i).get<char>(0);
+				hook::nopVP(location, 7);
 			}
-			*/
-			//hook::nopVP(0x100D4977, 0x35);
-			hook::putVP<uint8_t>(0x1009737B, 0xEB);
 
+			//F7 D9 1B C9 83 E1 04 0B CE
+			auto pattern = hook::module_pattern(hAspen, "C7 44 24 10 40").count(1);
+			if (pattern.size() == 1) {
+				char *location = pattern.get(0).get<char>(4);
+				hook::putVP<uint8_t>(location, 32);
+			}
+			//hook::nopVP(0x100D4909, 0x19);
+			//hook::vp::jump(0x100D49A7, Direct3DCreate8);
+#endif
 			SetWindowPosExaddr = HookGeneralFunction("user32.dll", "SetWindowPos", hook_SetWindowPosEx, backupSWP);
 			CreateWindowExaddr = HookGeneralFunction("user32.dll", "CreateWindowExA", hook_CreateWindowEx, backupCW);
 			ChangeDisplaySettingsaddr = HookGeneralFunction("user32.dll", "ChangeDisplaySettingsA", hook_ChangeDisplaySettings, backupCDS);

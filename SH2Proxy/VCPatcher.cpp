@@ -1064,6 +1064,11 @@ void __declspec(naked) SBCallbackPatch() {
 }
 #define LIMIT_FRAMERATE
 //#define EXPERIMENTAL_HOOKS
+
+void exitFunc(int code) {
+	printf("Exited at: %p\n", _ReturnAddress());
+	return;
+}
 bool VCPatcher::Init()
 {
 	//53 8B 5C 24 08 2B 59 0C
@@ -1089,8 +1094,9 @@ bool VCPatcher::Init()
 #endif
 
 	hook::nopVP(NOP_VP_CALLBACK_LOGIC, 6); //nop if statement at sbcallback to show the servers
+#ifndef COMPILING_2005
 	hook::vp::jump(NOP_VP_CALLBACK_LOGIC, SBCallbackPatch); //ServerBrowser callback logic re-impl'd...
-
+#endif
 	loc = (char*)FUNC_BUILD_QUERY_FUNC;
 	hook::set_call(&funcBuildQueryOrig, loc);
 	hook::vp::call(loc, funcBuildQueryCustom);
@@ -1102,9 +1108,12 @@ bool VCPatcher::Init()
 	hook::iat("WSOCK32.dll", CfxBind, 2);
 
 #ifdef COMPILING_2005
-	hook::nopVP(0x50001E, 29); //Patch it here so it doesn't exit early on when starting a dedicated server and the game at the same time
-	
+	//hook::vp::call(0x4FEC1B, exitFunc);
+	hook::putVP<uint8_t>(0x594578, 0xEB); //Skip the former error 183 at startup which doesn't allow you to start multiple instances of the game for example when hosting a dedicated server and running the game.
+	//hook::nopVP(0x558818, 2); //nop this thing at processincomingreplies
+	//hook::nopVP(0x4FFFFE, 6);
 #endif
+
 #ifdef _DEBUG
 	//loc = (char*)0x441070;
 	//SBCallback(int serverBrowser, int reason, int server, int instance)

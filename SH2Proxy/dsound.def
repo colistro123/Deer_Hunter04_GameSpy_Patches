@@ -1,4 +1,0 @@
-LIBRARY "dsound"
-
-EXPORTS
-	DirectSoundCreate8=DirectSoundCreate8_wrapper @11

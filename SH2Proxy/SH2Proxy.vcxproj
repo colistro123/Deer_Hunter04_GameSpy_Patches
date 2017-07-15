@@ -74,7 +74,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_2005|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <TargetName>dsound</TargetName>
+    <TargetName>dinput8</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -82,7 +82,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_2005|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <TargetName>d3d8</TargetName>
+    <TargetName>dinput8</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -109,13 +109,13 @@ copy "$(OutDir)*" "D:\Steam\Games\steamapps\common\Grand Theft Auto Vice City\"<
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;COMPILING_2005;DSOUND_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;COMPILING_2005;DSOUND_EXPORTS;DI_WRAPPER8;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)\Vendor\jitasm;$(ProjectDir)\Vendor\minhook\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ModuleDefinitionFile>dsound.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>dinput8.def</ModuleDefinitionFile>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <AdditionalDependencies>winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
@@ -154,7 +154,7 @@ copy "$(OutDir)*" "D:\Steam\Games\steamapps\common\Grand Theft Auto Vice City\"<
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;COMPILING_2005;DSOUND_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;COMPILING_2005;DSOUND_EXPORTS;DI_WRAPPER8;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)\Vendor\jitasm;$(ProjectDir)\Vendor\minhook\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -162,7 +162,7 @@ copy "$(OutDir)*" "D:\Steam\Games\steamapps\common\Grand Theft Auto Vice City\"<
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <ModuleDefinitionFile>dsound.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>dinput8.def</ModuleDefinitionFile>
       <AdditionalDependencies>winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
@@ -198,7 +198,7 @@ copy "$(OutDir)*" "D:\Steam\Games\steamapps\common\Grand Theft Auto Vice City\"<
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="darray.cpp" />
-    <ClCompile Include="dsound.cpp" />
+    <ClCompile Include="dinput.cpp" />
     <ClCompile Include="GameWindowRelated.cpp" />
     <ClCompile Include="GLHook.cpp" />
     <ClCompile Include="gsAssert.cpp" />
@@ -223,7 +223,7 @@ copy "$(OutDir)*" "D:\Steam\Games\steamapps\common\Grand Theft Auto Vice City\"<
     <ClCompile Include="WindowHooks.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="dsound.def" />
+    <None Include="dinput8.def" />
     <None Include="VCProxy.def" />
   </ItemGroup>
   <ItemGroup>

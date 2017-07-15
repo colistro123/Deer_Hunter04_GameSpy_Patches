@@ -149,18 +149,18 @@
     <ClCompile Include="GS_Fifo.cpp">
       <Filter>Source Files\GameSpy</Filter>
     </ClCompile>
-    <ClCompile Include="dsound.cpp">
-      <Filter>Source Files\GameSpy</Filter>
-    </ClCompile>
     <ClCompile Include="GLHook.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dinput.cpp">
+      <Filter>Source Files\GameSpy</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="VCProxy.def">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="dsound.def">
+    <None Include="dinput8.def">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>
