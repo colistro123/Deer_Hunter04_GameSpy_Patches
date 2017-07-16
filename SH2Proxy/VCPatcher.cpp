@@ -10,6 +10,14 @@
 #include "gameOffsets.h"
 
 #define CONSOLE_ENABLED_THAT_CRASHES
+#ifdef COMPILING_2005
+#define GAME_VERSION_NEEDED "1.2" //1.2 backwards (2.1)
+#else
+#define GAME_VERSION_NEEDED "1.1" //1.1
+#endif
+
+#include <sstream>
+#include <iomanip>      // std::setfill, std::setw
 
 PCHAR*
 CommandLineToArgvA(
@@ -1076,7 +1084,6 @@ void __declspec(naked) SBCallbackPatch() {
 	}
 #endif
 }
-#define LIMIT_FRAMERATE
 //#define EXPERIMENTAL_HOOKS
 
 void exitFunc(int code) {
@@ -1113,6 +1120,43 @@ hostent* __stdcall CfxHostname(char* hostname) {
 	return gethostbyname(modifiedHostName);
 }
 
+//https://stackoverflow.com/questions/5100718/integer-to-hex-string-in-c
+template< typename T >
+std::string int_to_hex(T i)
+{
+	std::stringstream stream;
+	stream << "0x"
+		<< std::setfill('0') << std::setw(sizeof(T) * 2)
+		<< std::hex << i;
+	return stream.str();
+}
+
+void checkGameVersion() {
+	auto location = hook::pattern("68 ? ? ? ? 68 ? ? ? ? 68 ? ? ? ? 50 E8 ? ? ? ? 8B 0D").count(1).get(0).get<intptr_t>(0);
+	intptr_t version = (*(intptr_t*)location);
+	version = (intptr_t)(version / 0x100); //Remove the last two digits on the address
+	version = *(intptr_t*)version; //Finally, access the address
+
+	std::string verOut = int_to_hex(version);
+
+	//https://stackoverflow.com/questions/3790613/how-to-convert-a-string-of-hex-values-to-a-string
+	int len = verOut.length();
+	std::string newString;
+	for (int i = 0; i< len; i += 2)
+	{
+		std::string byte = verOut.substr(i, 2);
+		char chr = (char)(int)strtol(byte.c_str(), NULL, 16);
+		newString.push_back(chr);
+	}
+
+	std::reverse(newString.begin(), newString.end());
+	if (strcmp(newString.c_str(), GAME_VERSION_NEEDED)) {
+		char errorMsg[128];
+		snprintf(errorMsg, sizeof(errorMsg), "You currently have Deer Hunter Patch v%s installed but to run this patch you require to have Deer Hunter v%s.", newString.c_str(), GAME_VERSION_NEEDED);
+		MessageBox(0, errorMsg, "Game Version Error", MB_ICONERROR);
+		exit(0);
+	}
+}
 bool VCPatcher::Init()
 {
 	//53 8B 5C 24 08 2B 59 0C
@@ -1137,6 +1181,7 @@ bool VCPatcher::Init()
 	MH_EnableHook(MH_ALL_HOOKS);
 #endif
 
+	checkGameVersion();
 //#ifndef COMPILING_2005
 	hook::nopVP(NOP_VP_CALLBACK_LOGIC, 6); //nop if statement at sbcallback to show the servers
 	hook::vp::jump(NOP_VP_CALLBACK_LOGIC, SBCallbackPatch); //ServerBrowser callback logic re-impl'd...

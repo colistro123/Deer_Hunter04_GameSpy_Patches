@@ -14,3 +14,4 @@ Virus Total results for [dinput8.dll](https://www.virustotal.com/en/file/118e5ce
 Notice:
 ======
 As of July, 15 of 2017 you no longer need to modify the hosts file to point to OpenSpy's servers since that's done internally from this point onwards.
+The D3D8 wrapper is based off [sh2proxy](https://github.com/emoose/sh2proxy "sh2proxy"), originally being a D3D8 wrapper and patcher for Silent Hill 2, thanks to them for the wrapper.
