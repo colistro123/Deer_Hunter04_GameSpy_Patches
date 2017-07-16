@@ -3,11 +3,11 @@ OpenSpy Support, fixed GameSpy listing
 
 Deer Hunter 04
 ======
-Simply drop Release/D3D8.dll in your game directory.
+Simply copy Release_2004/d3d8.dll to your game directory [Download](https://github.com/colistro123/Deer_Hunter04_GameSpy_Patches/blob/master/Release_2004/d3d8.dll "Download").
 
 Deer Hunter 05
 ======
-Simply drop Release_2005/dinput8.dll in your game directory.
+Simply copy Release_2005/dinput8.dll to your game directory [Download](https://github.com/colistro123/Deer_Hunter04_GameSpy_Patches/blob/master/Release_2005/dinput8.dll "Download").
 
 Notice:
 ======
