@@ -1042,6 +1042,7 @@ DWORD jmpAddrExit = SB_CALLBACK_JMPADDR_EXIT;
 DWORD jmpAddrContinue = SB_CALLBACK_JMPADDR_CONT;
 int reason;
 void __declspec(naked) SBCallbackPatch() {
+#ifndef COMPILING_2005
 	__asm {
 		push eax
 		mov eax, dword ptr ds:[esp+0xBC]
@@ -1061,6 +1062,19 @@ void __declspec(naked) SBCallbackPatch() {
 			pop eax
 			jmp jmpAddrContinue
 	}
+#else
+	//2005
+	__asm {
+		push esi
+		mov esi, dword ptr ds:[esp + 0x154]
+		cmp esi, 1
+		pop esi
+		jg label
+			jmp jmpAddrContinue
+		label:
+			jmp jmpAddrExit
+	}
+#endif
 }
 #define LIMIT_FRAMERATE
 //#define EXPERIMENTAL_HOOKS
@@ -1069,6 +1083,36 @@ void exitFunc(int code) {
 	printf("Exited at: %p\n", _ReturnAddress());
 	return;
 }
+int(*orig_ProcessIncomingData_Hook)(SBServerList slist);
+
+void ourProtoNetFunc(SBServerList* slist) {
+	char* val = *(char**)(slist + 16);
+	//printf("%p\n", val);
+	return;
+}
+
+void _declspec(naked) ProcessIncomingData_Hook()
+{
+	_asm
+	{
+		push eax
+		push ecx
+		call ourProtoNetFunc
+		pop ecx
+		pop eax
+
+		jmp orig_ProcessIncomingData_Hook
+	}
+}
+
+#define MASTER_URL "master.openspy.org"
+hostent* __stdcall CfxHostname(char* hostname) {
+	char modifiedHostName[256];
+	strcpy(modifiedHostName, strstr(hostname, "gamespy") ? MASTER_URL : hostname);
+	logFuncCustom(NULL, "CfxHostname called with hostname: %s from %p, patched to %s!\n", hostname, _ReturnAddress(), modifiedHostName);
+	return gethostbyname(modifiedHostName);
+}
+
 bool VCPatcher::Init()
 {
 	//53 8B 5C 24 08 2B 59 0C
@@ -1093,10 +1137,10 @@ bool VCPatcher::Init()
 	MH_EnableHook(MH_ALL_HOOKS);
 #endif
 
+//#ifndef COMPILING_2005
 	hook::nopVP(NOP_VP_CALLBACK_LOGIC, 6); //nop if statement at sbcallback to show the servers
-#ifndef COMPILING_2005
 	hook::vp::jump(NOP_VP_CALLBACK_LOGIC, SBCallbackPatch); //ServerBrowser callback logic re-impl'd...
-#endif
+//#endif
 	loc = (char*)FUNC_BUILD_QUERY_FUNC;
 	hook::set_call(&funcBuildQueryOrig, loc);
 	hook::vp::call(loc, funcBuildQueryCustom);
@@ -1106,12 +1150,14 @@ bool VCPatcher::Init()
 	hook::iat("WSOCK32.dll", CfxRecv, 16);
 	hook::iat("WSOCK32.dll", CfxRecvFrom, 17);
 	hook::iat("WSOCK32.dll", CfxBind, 2);
-
+	hook::iat("WSOCK32.dll", CfxHostname, 52);
 #ifdef COMPILING_2005
 	//hook::vp::call(0x4FEC1B, exitFunc);
 	hook::putVP<uint8_t>(0x594578, 0xEB); //Skip the former error 183 at startup which doesn't allow you to start multiple instances of the game for example when hosting a dedicated server and running the game.
 	//hook::nopVP(0x558818, 2); //nop this thing at processincomingreplies
 	//hook::nopVP(0x4FFFFE, 6);
+	hook::set_call(&orig_ProcessIncomingData_Hook, 0x592C6E);
+	hook::vp::call(0x592C6E, ProcessIncomingData_Hook);
 #endif
 
 #ifdef _DEBUG

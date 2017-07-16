@@ -187,10 +187,12 @@ DWORD WINAPI Init(LPVOID)
 			//hook::nopVP(0x100D4909, 0x19);
 			//hook::vp::jump(0x100D49A7, Direct3DCreate8);
 #endif
+#if _DEBUG
 			SetWindowPosExaddr = HookGeneralFunction("user32.dll", "SetWindowPos", hook_SetWindowPosEx, backupSWP);
 			CreateWindowExaddr = HookGeneralFunction("user32.dll", "CreateWindowExA", hook_CreateWindowEx, backupCW);
 			ChangeDisplaySettingsaddr = HookGeneralFunction("user32.dll", "ChangeDisplaySettingsA", hook_ChangeDisplaySettings, backupCDS);
 			ShowWindowExAddr = HookGeneralFunction("user32.dll", "ShowWindow", hook_ShowWindowEx, backupShowWindow);
+#endif
 			/*
 			pattern = hook::module_pattern(hAspen, "E8 ? ? ? ? 85 C0 75 30").count(1);
 			if (pattern.size() == 1) {

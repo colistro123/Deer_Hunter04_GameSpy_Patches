@@ -223,4 +223,5 @@ typedef struct _KeyInfo
 
 #define NO_SERVER_LIST			2
 #define FIXED_HEADER_LEN		6
+#define  gsiSocketIsError(theReturnValue)		((theReturnValue) == -1)
 #endif
