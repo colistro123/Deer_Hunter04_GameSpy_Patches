@@ -378,9 +378,8 @@ static HookFunction hookFunction([]()
 	hook::vp::jump(CLOG_NORMAL_FUNC_ADDR, logFuncCustom); //CLog::Normal
 	hook::vp::jump(CLOG_WARNING_FUNC_ADDR, logFuncCustom); //CLog::Warning
 	hook::vp::jump(CLOG_ERROR_FUNC_ADDR, logFuncCustom); //CLog::Error
-#if defined (COMPILING_DH2004) || defined (COMPILING_DH2005) //Can't be bothered finding this atm
 	hook::return_function_vp(NO_INTRO_SCREENS_FUNC_ADDR, 0); //no intro screens
-#endif
+
 	AllocConsole();
 	AttachConsole(GetCurrentProcessId());
 	freopen("CON", "w", stdout);
