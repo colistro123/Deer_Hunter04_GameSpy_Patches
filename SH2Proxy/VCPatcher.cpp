@@ -11,9 +11,9 @@
 
 #define CONSOLE_ENABLED_THAT_CRASHES
 #ifdef COMPILING_2005
-#define GAME_VERSION_NEEDED "1.2" //1.2 backwards (2.1)
-#else
-#define GAME_VERSION_NEEDED "1.1" //1.1
+#define GAME_VERSION_NEEDED "1.2"
+#elif COMPILING_2004
+#define GAME_VERSION_NEEDED "1.1"
 #endif
 
 #include <sstream>
@@ -307,6 +307,7 @@ static int unkHookThing2()
 	}
 }
 
+#if defined (COMPILING_DH2004) || defined (COMPILING_DH2005)
 static bool(*funcBuildQueryOrig)(int a1, int a2, int a3, struct sockaddr *to);
 static bool funcBuildQueryCustom(int a1, int a2, int a3, struct sockaddr *to)
 {
@@ -316,6 +317,16 @@ static bool funcBuildQueryCustom(int a1, int a2, int a3, struct sockaddr *to)
 	printf_s("funcBuildQueryCustom(%d, %d, %d, %d) invoked...\n", a1, a2, a3, to);
 	return funcBuildQueryOrig(a1, a2, a3, to);
 }
+#else
+static char*(*funcBuildQueryOrig)(void* thisPtr, struct sockaddr *to, void* buf, void *a4);
+static char* funcBuildQueryCustom(void* thisPtr, struct sockaddr *to, void* buf, void *a4)
+{
+	printf_s("funcBuildQueryCustom(%p, %d, %s, %s) invoked...\n", thisPtr, to, buf, a4);
+	char* retResult = funcBuildQueryOrig(thisPtr, to, buf, a4);
+	printf_s("Returned result: %s", retResult);
+	return retResult;
+}
+#endif
 
 static SBError ServerListConnect(void *padding1, SBServerList *slist)
 {
@@ -367,8 +378,9 @@ static HookFunction hookFunction([]()
 	hook::vp::jump(CLOG_NORMAL_FUNC_ADDR, logFuncCustom); //CLog::Normal
 	hook::vp::jump(CLOG_WARNING_FUNC_ADDR, logFuncCustom); //CLog::Warning
 	hook::vp::jump(CLOG_ERROR_FUNC_ADDR, logFuncCustom); //CLog::Error
+#if defined (COMPILING_DH2004) || defined (COMPILING_DH2005) //Can't be bothered finding this atm
 	hook::return_function_vp(NO_INTRO_SCREENS_FUNC_ADDR, 0); //no intro screens
-
+#endif
 	AllocConsole();
 	AttachConsole(GetCurrentProcessId());
 	freopen("CON", "w", stdout);
@@ -1050,7 +1062,7 @@ DWORD jmpAddrExit = SB_CALLBACK_JMPADDR_EXIT;
 DWORD jmpAddrContinue = SB_CALLBACK_JMPADDR_CONT;
 int reason;
 void __declspec(naked) SBCallbackPatch() {
-#ifndef COMPILING_2005
+#ifdef COMPILING_2004
 	__asm {
 		push eax
 		mov eax, dword ptr ds:[esp+0xBC]
@@ -1070,7 +1082,7 @@ void __declspec(naked) SBCallbackPatch() {
 			pop eax
 			jmp jmpAddrContinue
 	}
-#else
+#elif COMPILING_2005
 	//2005
 	__asm {
 		push esi
@@ -1131,6 +1143,7 @@ std::string int_to_hex(T i)
 	return stream.str();
 }
 
+#if defined (COMPILING_2004) || defined (COMPILING_2005)
 void checkGameVersion() {
 	auto location = hook::pattern("68 ? ? ? ? 68 ? ? ? ? 68 ? ? ? ? 50 E8 ? ? ? ? 8B 0D").count(1).get(0).get<intptr_t>(0);
 	intptr_t version = (*(intptr_t*)location);
@@ -1157,6 +1170,25 @@ void checkGameVersion() {
 		exit(0);
 	}
 }
+#endif
+DWORD exitPoint = 0x41BC1F;
+DWORD exitPointOut = 0x41BF19;
+DWORD genFuncCall = 0x41CF2F;
+void __declspec(naked) DHTH2003() {
+	__asm {
+		cmp eax, 0
+		je labelret
+		mov [eax + 0x50], ebx
+		mov     ecx, [0x510FC0]
+		call    genFuncCall
+		cmp     [eax + 0A4h], 1
+		jmp exitPoint
+
+		labelret:
+		jmp exitPointOut
+	}
+}
+
 bool VCPatcher::Init()
 {
 	//53 8B 5C 24 08 2B 59 0C
@@ -1181,15 +1213,15 @@ bool VCPatcher::Init()
 	MH_EnableHook(MH_ALL_HOOKS);
 #endif
 
+#if defined (COMPILING_2004) || defined (COMPILING_2005)
 	checkGameVersion();
-//#ifndef COMPILING_2005
 	hook::nopVP(NOP_VP_CALLBACK_LOGIC, 6); //nop if statement at sbcallback to show the servers
 	hook::vp::jump(NOP_VP_CALLBACK_LOGIC, SBCallbackPatch); //ServerBrowser callback logic re-impl'd...
-//#endif
+
 	loc = (char*)FUNC_BUILD_QUERY_FUNC;
 	hook::set_call(&funcBuildQueryOrig, loc);
 	hook::vp::call(loc, funcBuildQueryCustom);
-
+#endif
 	hook::iat("WSOCK32.dll", CfxSend, 19);
 	hook::iat("WSOCK32.dll", CfxSendTo, 20);
 	hook::iat("WSOCK32.dll", CfxRecv, 16);
@@ -1205,6 +1237,10 @@ bool VCPatcher::Init()
 	hook::vp::call(0x592C6E, ProcessIncomingData_Hook);
 #endif
 
+#ifdef COMPILING_TH2003
+	hook::vp::call(0x41BC0A, DHTH2003);
+#endif
+
 #ifdef _DEBUG
 	//loc = (char*)0x441070;
 	//SBCallback(int serverBrowser, int reason, int server, int instance)
@@ -1212,7 +1248,7 @@ bool VCPatcher::Init()
 
 	//hook::vp::jump(0x446FD0, ProcessMainListData);
 	//hook::vp::jump(0x446ED0, IncomingListParseServer);
-#ifndef COMPILING_2005 //04 specific for now
+#ifdef COMPILING_2004 //04 specific for now
 	hook::vp::jump(PARSE_SINGLE_QR2_REPLY, orig_ParseSingleQR2Reply);
 	hook::vp::jump(SBQueryEngineThinkWrapperAddr, SBQueryEngineThinkWrapper);
 	hook::vp::jump(sub_442070_Addr, sub_442070);
