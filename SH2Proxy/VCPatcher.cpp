@@ -321,9 +321,9 @@ static bool funcBuildQueryCustom(int a1, int a2, int a3, struct sockaddr *to)
 static char*(*funcBuildQueryOrig)(void* thisPtr, struct sockaddr *to, void* buf, void *a4);
 static char* funcBuildQueryCustom(void* thisPtr, struct sockaddr *to, void* buf, void *a4)
 {
-	printf_s("funcBuildQueryCustom(%p, %d, %s, %s) invoked...\n", thisPtr, to, buf, a4);
+	//printf_s("funcBuildQueryCustom(%p, %d, %s, %s) invoked...\n", thisPtr, to, buf, a4);
 	char* retResult = funcBuildQueryOrig(thisPtr, to, buf, a4);
-	printf_s("Returned result: %s", retResult);
+	//printf_s("Returned result: %s", retResult);
 	return retResult;
 }
 #endif
@@ -1123,7 +1123,7 @@ void _declspec(naked) ProcessIncomingData_Hook()
 	}
 }
 
-#define MASTER_URL "master.openspy.org"
+#define MASTER_URL "master.openspy.net"
 hostent* __stdcall CfxHostname(char* hostname) {
 	char modifiedHostName[256];
 	strcpy(modifiedHostName, strstr(hostname, "gamespy") ? MASTER_URL : hostname);
